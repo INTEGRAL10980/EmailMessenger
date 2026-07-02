@@ -108,7 +108,7 @@ pip install pyinstaller
 ```
 pyinstaller --onefile main.py
 ```
-### (под Android) !Собрать можно только на линуксе или вирт. машинах
+### (под Android) !Собрать можно только на LINUX или вирт. машинах
 Подготовьте систему
 ```
 sudo apt update
