@@ -1,6 +1,7 @@
 import flet as ft
 import os
 import logging
+import platform
 
 from ui.main_screen import MainScreen
 from ui.registration_screen import RegistrationScreen
@@ -10,9 +11,9 @@ from handlers import ApplicationHandler
 logging.getLogger("flet").setLevel(logging.INFO)
 
 class Application:
-    def __init__(self, system):
+    def __init__(self):
         self.page : ft.Page | None = None
-        self.system = system
+        self.system = platform.system()
 
 
     def _build(self, page : ft.Page):
