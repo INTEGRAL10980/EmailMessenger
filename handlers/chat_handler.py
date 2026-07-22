@@ -32,6 +32,7 @@ class ChatHandler:
         self.sent_thread_email = login_email(self.account.EMAIL, self.account.EMAIL_PASSWORD)
         self.sent_thread_email.sent_mailbox = self.sent_thread_email.get_sent_mailbox()
 
+        self.running = True
         self.locker = asyncio.Lock()
 
     def run(self):
@@ -41,6 +42,7 @@ class ChatHandler:
 
     async def _update_smtp_connection(self):
         while True:
+            if self.running is False: return
             try:
                 await asyncio.sleep(self.config["time_smtp_reconnection_sleep"])
                 async with self.locker:
@@ -50,6 +52,7 @@ class ChatHandler:
 
     async def _update_imap_connection(self):
         while True:
+            if self.running is False: return
             try:
                 await asyncio.sleep(self.config["time_imap_reconnection_sleep"])
                 async with self.locker:
@@ -98,3 +101,6 @@ class ChatHandler:
             self.callback_method(message)
     def load_history(self, limit = 30):
         self._load_history(limit)
+
+    def stop(self):
+        self.running = False
