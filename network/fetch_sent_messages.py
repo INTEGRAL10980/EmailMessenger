@@ -3,7 +3,7 @@ from .modified_imap4_ssl import ModifiedIMAP4_SSL
 from .fetch_message_by_uid import fetch_message_by_uid
 from .get_uid import get_uid_list
 from core import Contact, Account
-from android_utils import logging, Dir
+from utils import logging, Dir
 from storage import edit_contact
 import imaplib
 
@@ -24,6 +24,7 @@ def fetch_sent_messages(dir : Dir, email : ModifiedIMAP4_SSL, contact : Contact,
         for uid in uid_list:
             message = fetch_message_by_uid(email, uid)
             message_data = get_message_as_dict(dir, message, contact, "me")
+            if message_data is False: continue
             output.append(message_data)
 
         if len(output) != 0:

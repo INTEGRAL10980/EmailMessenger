@@ -1,6 +1,6 @@
 import json
 import os
-from android_utils import Dir
+from utils import Dir
 
 def get_config(dir : Dir) -> dict:
     path = dir*"config.json"
@@ -18,7 +18,8 @@ def get_config(dir : Dir) -> dict:
                 },
                 "SIZE" : [540, 960],
                 "time_fetch_sleep" : 1,
-                "time_reconnection_sleep" : 120
+                "time_smtp_reconnection_sleep" : 120,
+                "time_imap_reconnection_sleep" : 120
             }
             json.dump(data, config, ensure_ascii=False, indent=4)
 

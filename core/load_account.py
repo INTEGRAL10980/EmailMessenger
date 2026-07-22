@@ -1,7 +1,7 @@
 from .account import Account
 import json
 import os
-from android_utils import Dir, logging
+from utils import Dir, logging
 
 def load_account(dir : Dir) -> Account | bool:
 

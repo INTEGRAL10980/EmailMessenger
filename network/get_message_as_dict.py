@@ -1,7 +1,7 @@
 from email.utils import parsedate_to_datetime
 from core import Contact
 import email
-from android_utils import Dir, logging
+from utils import Dir, logging
 from .message_parser import get_message_text
 from .message_parser import get_message_application
 

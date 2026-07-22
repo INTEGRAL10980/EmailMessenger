@@ -1,6 +1,6 @@
 from storage import edit_contact
 from core import Contact
-from android_utils import Dir, logging
+from utils import Dir, logging
 import imaplib
 from .modified_imap4_ssl import ModifiedIMAP4_SSL
 from .fetch_message_by_uid import fetch_message_by_uid
@@ -26,6 +26,7 @@ def fetch_incoming_messages(dir : Dir, email : ModifiedIMAP4_SSL, contact : Cont
         for uid in uid_list:
             message = fetch_message_by_uid(email, uid)
             message_data = get_message_as_dict(dir, message, contact, "contact")
+            if message_data is False: continue
             output.append(message_data)
 
         if len(output) != 0:

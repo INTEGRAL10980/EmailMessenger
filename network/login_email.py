@@ -1,7 +1,7 @@
 import imaplib
 
 from .modified_imap4_ssl import ModifiedIMAP4_SSL
-from android_utils import logging
+from utils import logging
 import ssl
 
 IMAP_SERVERS = {
@@ -27,7 +27,6 @@ IMAP_SERVERS = {
 
 def login_email(email : str, password : str) -> ModifiedIMAP4_SSL | bool:
     try:
-
         context = ssl.create_default_context()
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE

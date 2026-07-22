@@ -3,7 +3,7 @@ from core import get_contacts
 from core import load_account
 from core import create_contacts_folder
 from storage import get_config
-from android_utils import Dir
+from utils import Dir
 
 
 
@@ -12,6 +12,7 @@ class ApplicationHandler:
     def __init__(self, dir : Dir) -> None:
 
         self.dir = dir
+        self.create_contacts_folder()
         self.account = load_account(dir)
         self.contacts = get_contacts(dir)
 

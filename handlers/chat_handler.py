@@ -1,9 +1,10 @@
 from typing import Callable
-import threading
+import asyncio
 import time
 
-from android_utils import Dir
-from core import get_contact
+from network import create_message
+from utils import Dir
+from core import Contact
 from core import load_account
 from network import fetch_incoming_messages
 from network import create_server
@@ -18,63 +19,82 @@ from storage import get_messages_from_history
 
 
 class ChatHandler:
-    def __init__(self, dir : Dir, path_to_contact : str, callback_method : Callable) -> None:
+    def __init__(self, dir, contact, callback_method, run_task_method):
 
         self.dir = dir
         self.account = load_account(dir)
-        self.contact = get_contact(dir, path_to_contact)
+        self.contact = contact
         self.server = create_server(self.account.EMAIL, self.account.EMAIL_PASSWORD)
         self.config = get_config(dir)
         self.callback_method = callback_method
+        self.run_task_method = run_task_method
         self.incoming_thread_email = login_email(self.account.EMAIL, self.account.EMAIL_PASSWORD)
         self.sent_thread_email = login_email(self.account.EMAIL, self.account.EMAIL_PASSWORD)
         self.sent_thread_email.sent_mailbox = self.sent_thread_email.get_sent_mailbox()
 
-        self.locker = threading.Lock()
+        self.locker = asyncio.Lock()
 
-    def run(self) -> None:
-        self.fetch_incoming_messages_thread = threading.Thread(target=self._fetch_incoming_messages, daemon=True)
-        self.update_server_connection_thread = threading.Thread(target=self._update_server_connection, daemon=True)
+    def run(self):
+        self.run_task_method(self._fetch_messages)
+        self.run_task_method(self._update_smtp_connection)
+        self.run_task_method(self._update_imap_connection)
 
-        self.fetch_incoming_messages_thread.start()
-        self.update_server_connection_thread.start()
-
-    def _update_server_connection(self) -> None:
+    async def _update_smtp_connection(self):
         while True:
-            time.sleep(self.config["time_reconnection_sleep"])
-            with self.locker:
-                self.server = create_server(self.account.EMAIL, self.account.EMAIL_PASSWORD)
+            try:
+                await asyncio.sleep(self.config["time_smtp_reconnection_sleep"])
+                async with self.locker:
+                    self.server = await asyncio.to_thread(create_server, self.account.EMAIL, self.account.EMAIL_PASSWORD)
+            except:
+                await asyncio.sleep(5)
 
-    def _fetch_incoming_messages(self) -> None:
+    async def _update_imap_connection(self):
         while True:
-            messages = fetch_incoming_messages(self.dir, self.incoming_thread_email, self.contact)
+            try:
+                await asyncio.sleep(self.config["time_imap_reconnection_sleep"])
+                async with self.locker:
+                    self.incoming_thread_email = await asyncio.to_thread(login_email, self.account.EMAIL, self.account.EMAIL_PASSWORD)
+                    self.sent_thread_email = await asyncio.to_thread(login_email, self.account.EMAIL, self.account.EMAIL_PASSWORD)
+                    self.sent_thread_email.sent_mailbox = await asyncio.to_thread(self.sent_thread_email.get_sent_mailbox)
+            except:
+                await asyncio.sleep(5)
+
+    async def _fetch_messages(self):
+        while True:
+            try:
+                async with self.locker:
+                    messages = await asyncio.to_thread(fetch_incoming_messages, self.dir, self.incoming_thread_email, self.contact)
+                    messages += await asyncio.to_thread(fetch_sent_messages, self.dir, self.sent_thread_email, self.contact, self.account)
+            except:
+                messages = []
             if len(messages) == 0:
-                time.sleep(self.config["time_fetch_sleep"])
+                await asyncio.sleep(self.config["time_fetch_sleep"])
                 continue
             for message in messages:
-                append_message_to_history(self.dir, self.contact, message["from"], message["date"], message["text/plain"],
+
+                await asyncio.to_thread(append_message_to_history, self.dir, self.contact, message["from"], message["date"], message["text/plain"],
                                           message["application"])
                 self.callback_method(message)
 
-    def send_message(self, text : str, applications : list) -> list:
-        output = []
-        send_thread = threading.Thread(target=self._send_message, args=[text, applications, output])
-        send_thread.start()
-        return output
-    def _send_message(self, text : str, applications : list, output : list) -> None:
-        result = send_message(self.dir, self.server, self.sent_thread_email, self.account, self.contact, text, applications)
-        if result is False: return None
-        messages = fetch_sent_messages(self.dir, self.sent_thread_email, self.contact, self.account)
-        for message in messages:
-            append_message_to_history(self.dir, self.contact, message["from"], message["date"], message["text/plain"],
-                                      message["application"])
-            self.callback_method(message)
-        output.extend(messages)
+    def send_message(self, text, applications):
+        self.run_task_method(self._send_message, text, applications)
+    async def _send_message(self, text, applications):
+        email_message = await asyncio.to_thread(create_message, self.dir, self.account.EMAIL, self.contact.EMAIL, text, applications) #made with MIME
+        for attempt in range(3):
+            async with self.locker:
+                server = self.server
+                email = self.sent_thread_email
+            try:
+                result = await asyncio.to_thread(send_message, server, email, self.account, self.contact, email_message)
+                break
+            except:
+                print("dfdfdf")
+                await asyncio.sleep(2)
+                continue
 
-    def _load_history(self, limit : int) -> None:
+    def _load_history(self, limit):
         output = get_messages_from_history(self.dir, self.contact, limit)
         for message in output:
             self.callback_method(message)
-    def load_history(self, limit : int = 30) -> None:
-        thread = threading.Thread(target=self._load_history, args=[limit])
-        thread.start()
+    def load_history(self, limit = 30):
+        self._load_history(limit)

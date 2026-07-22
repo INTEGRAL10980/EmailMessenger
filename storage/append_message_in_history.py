@@ -1,5 +1,5 @@
 from core import Contact
-from android_utils import Dir
+from utils import Dir
 import sqlite3
 import os
 

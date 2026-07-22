@@ -1,6 +1,6 @@
 import json
 import os.path
-from android_utils import Dir, logging
+from utils import Dir, logging
 
 def create_account(dir : Dir, name : str, email : str, password : str) -> bool:
     path = dir*"account_config.json"

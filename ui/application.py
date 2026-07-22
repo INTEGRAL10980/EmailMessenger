@@ -1,66 +1,57 @@
-from kivy.app import App
-from kivy.core.window import Window
-from kivy.uix.screenmanager import ScreenManager
+import flet as ft
+import os
+import logging
 
-from .main_screen import MainScreen
-from .registration_screen import RegistrationScreen
-from .chat import Chat
+from ui.main_screen import MainScreen
+from ui.registration_screen import RegistrationScreen
+from utils import Dir
 from handlers import ApplicationHandler
 
-from core import Contact
-from android_utils import Dir
+logging.getLogger("flet").setLevel(logging.INFO)
+
+class Application:
+    def __init__(self):
+        self.page : ft.Page | None = None
 
 
+    def _build(self, page : ft.Page):
+        self.page = page
+        self.page.on_route_change =self._route_screens
+        self.page.theme_mode = "dark"
+        self.page.title = "Физмат Мессенджер"
+        self.page.window.icon = os.path.abspath("assets/icon.ico")
+        self.page.update()
 
-class Application(App):
-
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-
+        self.user_data_dir = os.path.join(os.getenv("APPDATA"), "FizmatMessenger")
+        if not os.path.isdir(self.user_data_dir):
+            os.mkdir(self.user_data_dir)
         self.dir = Dir(self.user_data_dir)
         self.application_handler = ApplicationHandler(self.dir)
-        self.config = self.application_handler.get_config()
-        self.SIZE = self.config["SIZE"]
-        self.color_theme = self.config["color_theme"]
+
         self.account = self.application_handler.account
 
-
-
-        self.screen_manager = ScreenManager()
-        self.screen_manager.add_contact_screen = self.add_contact_screen
-        self.screen_manager.build_application = self.build_application
-
-        if self.account is False:
-            self.registration_screen = RegistrationScreen(dir=self.dir, SIZE=self.SIZE, color_theme=self.color_theme)
-            self.screen_manager.add_widget(self.registration_screen)
+        if not self.account:
+            self.registration_screen = RegistrationScreen(self.dir, self._build_application)
+            self.page.go("/reg")
         else:
-            self.build_application()
+            self._build_application()
 
 
 
-    def build(self) -> ScreenManager:
-        return self.screen_manager
-
-    def window_set_config(self) -> None:
-        Window.softinput_mode = "below_target"
-        Window.size = self.config["SIZE"]
-
-    def add_contact_screen(self, contact : Contact) -> None:
-        chat = Chat(dir=self.dir, SIZE=self.SIZE, name = contact.PATH_TO_CONTACT,
-                    contact=contact, color_theme=self.color_theme)
-        self.screen_manager.add_widget(chat)
-        self.contacts = self.application_handler.get_contacts()
-
-    def build_application(self) -> None:
-        self.application_handler.create_contacts_folder()
-
+    def _build_application(self):
         self.account = self.application_handler.reload_account()
         self.contacts = self.application_handler.get_contacts()
 
-        self.main_screen = MainScreen(self.dir, self.SIZE, self.color_theme)
-        self.screen_manager.add_widget(self.main_screen)
+        self.main_screen = MainScreen(self.dir, self.page)
 
-        for contact in self.contacts:
-            self.add_contact_screen(contact)
+        self.page.go("/main")
 
-        self.screen_manager.current = "main"
+    def _route_screens(self, route):
+        self.page.views.clear()
+        if self.page.route == "/reg":
+            self.page.views.append(self.registration_screen.screen)
+        elif self.page.route == "/main":
+            self.page.views.append(self.main_screen.screen)
+
+    def run(self):
+        ft.app(target=self._build)

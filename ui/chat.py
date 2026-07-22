@@ -1,67 +1,67 @@
-from kivy.uix.screenmanager import Screen
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.boxlayout import BoxLayout
-from kivy.graphics import Rectangle, Color
-from kivy.clock import Clock
-from kivy.uix.button import Button
-from kivy.uix.textinput import TextInput
-from kivy.core.window import Window
+import flet as ft
+import os
+import webbrowser
 
-from core import Contact
-from .message import Message
-from android_utils import Dir
 from handlers import ChatHandler
+from .message import Message
 
-class Chat(Screen):
-    def __init__(self, dir : Dir, SIZE : list, contact : Contact, color_theme : dict, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.chat_handler = ChatHandler(dir, self.name, self.add_message_widget)
-        self.SIZE = SIZE
-        self.color_theme = color_theme
-        self.applications = []
+class Chat:
+    def __init__(self, dir, page : ft.Page, contact):
+        super().__init__()
+        self.page = page
+        self.dir = dir
+        self.chat_handler = ChatHandler(dir, contact, self.add_message, page.run_task)
 
-        self.messages_layout = ScrollView(size=(SIZE[0], SIZE[1]-0.2*SIZE[0]), size_hint=(None, None), scroll_y=0, pos=(0, SIZE[0]*0.1), scroll_type=['bars', 'content'], bar_width="10dp")
-        self.messages_box = BoxLayout(orientation="vertical", size_hint=(1, None), spacing=10)
-        self.messages_box.bind(minimum_height=self.messages_box.setter('height'))
-        self.chat_handler.load_history()
-        self.input = TextInput(foreground_color=[1,1,1], size=(SIZE[0]-SIZE[0]*0.1, 0.1*SIZE[0]), size_hint=(None, None), background_normal="", background_color=color_theme["widget_background"], hint_text="Введите сообщение")
-        self.input_button = Button(text=">", font_size=25, size_hint=(None, None), size=(0.1*SIZE[0], 0.1*SIZE[0]), pos=(SIZE[0]-SIZE[0]*0.1, 0), background_normal="", background_color=color_theme["widget_background"], on_press=self._send_message)
-        self.contact_button = Button(text=contact.NAME, size=(SIZE[0]*0.9, SIZE[0]*0.1), size_hint=(None, None), pos=(SIZE[0]*0.1, SIZE[1]-SIZE[0]*0.1), halign="left", text_size=(SIZE[0]*0.9*0.95, None), font_size=20,
-                                     background_normal="", background_down="", background_color=color_theme["widget_background"])
-        self.return_button = Button(text="<", font_size=25, size_hint=(None, None), size=(0.1*SIZE[0], 0.1*SIZE[0]), pos=(0, SIZE[1]-SIZE[0]*0.1), background_normal="", background_color=color_theme["widget_background"], on_press=self._return_to_main_screen)
+        self.messages_list_view = ft.ListView(
+            controls=[], spacing=20, expand=True, auto_scroll=True
+        )
+        self.input_field = ft.TextField(label="Введите сообщение", multiline=True, max_lines=5, expand=True)
+        self.application_panel = ft.Row(controls=[], expand=True, spacing=20, scroll=ft.ScrollMode.AUTO)
+        self.layout = ft.Column(
+            controls=[
+            ft.Row([
+                ft.Button(content=ft.Text(value=contact.NAME, size=16), expand=True), ft.IconButton(icon=ft.icons.Icons.EDIT)
+            ]),
+            self.messages_list_view,
+            ft.Column([
+                self.application_panel,
+                ft.Row([
+                    self.input_field, ft.IconButton(icon=ft.icons.Icons.ATTACH_FILE, on_click=self.pick_files), ft.IconButton(icon=ft.icons.Icons.SEND, on_click=self._send_message)
+                ])
+            ])
+        ], expand=3, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
 
-        with self.messages_layout.canvas.before:
-            Color(*color_theme["main_background"])
-            self.rect = Rectangle(size=self.SIZE, pos=(0,0))
-
-        self.messages_layout.add_widget(self.messages_box)
-        self.add_widget(self.messages_layout)
-        self.add_widget(self.input)
-        self.add_widget(self.input_button)
-        self.add_widget(self.contact_button)
-        self.add_widget(self.return_button)
-
-        Window.bind(on_drop_file=self._on_drop_file)
+        self.messages_from_history = self.chat_handler.load_history(50)
         self.chat_handler.run()
 
-    def add_message_widget(self, message : dict) -> None:
-        Clock.schedule_once(lambda dt: self._add_message_widget(dt, message))
-    def _add_message_widget(self, dt : float, message : dict) -> None:
-        message_widget = Message(self.chat_handler.dir, self.SIZE, self.chat_handler.contact, message, self.color_theme)
-        self.messages_box.add_widget(message_widget)
-        message_widget.pos_hint = {"x": 0}
+        self.applications = []
 
-    def _send_message(self, instance : Button) -> None:
-        text = self.input.text
+    def add_message(self, message):
+        self.messages_list_view.controls.append(
+            Message(self.dir, self.chat_handler.contact, message)
+        )
+        self.page.update()
+
+    def _send_message(self, e) -> None:
+        text = self.input_field.value
         if text == "": return
         self.chat_handler.send_message(text, self.applications)
         self.applications = []
-        self.input.text = ""
-    def _on_drop_file(self, window : Window, filename : str, *args) -> None:
-        file_path = filename.decode('utf-8')
-        self.applications.append(file_path)
+        self.application_panel.controls = []
+        self.input_field.value = ""
+        self.page.update()
 
-    def _return_to_main_screen(self, instance : Button) -> None:
-        self.manager.current = "main"
-    def on_stop(self) -> None:
-        self.email.close()
+    async def pick_files(self, e):
+        files = await ft.FilePicker().pick_files(allow_multiple=False)
+        if len(files) == 0: return
+        for file in files:
+            path = str(file.path)
+            self.applications.append(path)
+            filename=os.path.basename(path)
+            self.application_panel.controls.append(ft.Row([
+                ft.IconButton(icon=ft.icons.Icons.CLOSE, on_click=lambda e, _path=path: self._unpin(e, _path)), ft.Button(content=filename, on_click=lambda e, _path=path: webbrowser.open(_path))
+            ], spacing=0))
+
+    def _unpin(self, e, path):
+        self.application_panel.controls.remove(e.control.parent)
+        self.applications.remove(path)

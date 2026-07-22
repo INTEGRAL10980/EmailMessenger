@@ -1,14 +1,14 @@
 import imaplib
 import os
 import smtplib
-import time
+import asyncio
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from core import Account
 from core import Contact
-from android_utils import Dir, logging
+from utils import Dir, logging
 from network.modified_imap4_ssl import ModifiedIMAP4_SSL
 
 
@@ -35,22 +35,27 @@ def create_message(dir : Dir, from_email : str, by_email : str,
     return multipart_message
 
 
-def send_message(dir : Dir, server : smtplib.SMTP, email : ModifiedIMAP4_SSL,
-                 account : Account, contact : Contact,
-                 text_content : str,
-                 applications : list[str]) -> bool:
+def send_message(server : smtplib.SMTP, email : ModifiedIMAP4_SSL,
+                 account : Account, contact : Contact, message : MIMEMultipart) -> bool:
     try:
 
-        multipart_message = create_message(dir, account.EMAIL, contact.EMAIL, text_content, applications)
-        server.sendmail(account.EMAIL, contact.EMAIL, multipart_message.as_string())
-        result = email.append(email.sent_mailbox, r"(\Seen)", None, multipart_message.as_string().encode('utf-8'))
+        server.sendmail(account.EMAIL, contact.EMAIL, message.as_string())
+
+    except smtplib.SMTPDataError as e:
+        logging.error(f"[SEND MESSAGE] Data error {e}")
+        return False
+    except ConnectionError as e:
+        logging.error(f"[SEND MESSAGE] Connection error {e}")
+        return False
+
+    try:
+
+        imaplib.MAXLINE = 10485760
+        result = email.append(email.sent_mailbox, r"(\Seen)", None, message.as_string().encode('utf-8'))
         return True
 
     except imaplib.IMAP4.error as e:
         logging.error(f"[SEND MESSAGE] IMAP error {e}")
-        return False
-    except smtplib.SMTPDataError as e:
-        logging.error(f"[SEND MESSAGE] Data error {e}")
         return False
     except ConnectionError as e:
         logging.error(f"[SEND MESSAGE] Connection error {e}")

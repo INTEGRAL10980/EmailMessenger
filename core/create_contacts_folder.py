@@ -1,5 +1,5 @@
 import os
-from android_utils import Dir
+from utils import Dir
 
 def create_contacts_folder(dir : Dir) -> bool:
     try:

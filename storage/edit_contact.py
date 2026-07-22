@@ -1,6 +1,6 @@
 from core import Contact
 from core import get_contact
-from android_utils import Dir
+from utils import Dir
 import os
 import json
 

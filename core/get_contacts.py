@@ -1,6 +1,6 @@
 from .contact import Contact
 from .get_contact import get_contact
-from android_utils import Dir
+from utils import Dir
 import os
 
 def get_contacts(dir : Dir) -> list[Contact]:

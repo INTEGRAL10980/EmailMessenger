@@ -1,5 +1,5 @@
 import smtplib
-from android_utils import logging
+from utils import logging
 
 SERVERS = {
         'gmail.com': ('smtp.gmail.com', 587),

@@ -3,7 +3,7 @@ from .get_contact import get_contact
 import os
 import json
 import sqlite3
-from android_utils import Dir, logging
+from utils import Dir, logging
 
 def create_contact(dir : Dir, name : str, email : str) -> Contact | bool:
     try:
@@ -20,6 +20,8 @@ def create_contact(dir : Dir, name : str, email : str) -> Contact | bool:
         os.makedirs(path_images, exist_ok=True)
         os.makedirs(path_videos, exist_ok=True)
         os.makedirs(path_audio, exist_ok=True)
+
+
         connection = sqlite3.connect(path_db)
         cursor = connection.cursor()
         cursor.execute("""
