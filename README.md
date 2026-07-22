@@ -21,6 +21,7 @@
 ![Запись контакта](screenshots/addcontact.png)
 ![Прикрепление файлов](screenshots/filepicker.png)
 ![Экран чата](screenshots/pickedfiles.png)
+![Линукс](screenshots/linuxexample.png)
 
 
 ## Возможности
