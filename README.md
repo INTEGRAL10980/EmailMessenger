@@ -115,6 +115,9 @@ python3 -m venv .venv
 ```
 .venv\Scripts\activate
 ```
+```
+pip install flet
+```
 В зависимости от системы запустите сборку через flet
 ```
 flet build windows
