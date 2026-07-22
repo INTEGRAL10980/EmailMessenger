@@ -10,8 +10,9 @@ from handlers import ApplicationHandler
 logging.getLogger("flet").setLevel(logging.INFO)
 
 class Application:
-    def __init__(self):
+    def __init__(self, system):
         self.page : ft.Page | None = None
+        self.system = system
 
 
     def _build(self, page : ft.Page):
