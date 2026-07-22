@@ -10,7 +10,10 @@ class MainScreen:
         self.dir = dir
         self.main_screen_handler = MainScreenHandler(dir)
 
-        self.selected_contact = self.main_screen_handler.contacts[0].NAME
+        if len(self.main_screen_handler.contacts) == 0:
+            self.selected_contact = ""
+        else:
+            self.selected_contact = self.main_screen_handler.contacts[0].NAME
         self.chats={
         }
 
@@ -33,7 +36,7 @@ class MainScreen:
             controls=[
                 ft.Row(controls=[
                     self.contacts_list_view,
-                    self.chats[self.selected_contact].layout
+                    self.chats[self.selected_contact].layout if self.selected_contact != "" else ft.ListView(controls=[], expand=3)
                 ], expand=True)
             ]
         )
