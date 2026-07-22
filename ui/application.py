@@ -22,7 +22,12 @@ class Application:
         self.page.window.icon = os.path.abspath("assets/icon.ico")
         self.page.update()
 
-        self.user_data_dir = os.path.join(os.getenv("APPDATA"), "FizmatMessenger")
+        if self.system == "Windows":
+            self.user_data_dir = os.path.join(os.getenv("APPDATA"), "FizmatMessenger")
+        elif self.system == "Linux":
+            self.user_data_dir = os.path.join(os.path.expanduser("~/.config"), "FizmatMessenger")
+        else: exit()
+            
         if not os.path.isdir(self.user_data_dir):
             os.mkdir(self.user_data_dir)
         self.dir = Dir(self.user_data_dir)
