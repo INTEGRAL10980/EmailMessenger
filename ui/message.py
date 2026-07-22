@@ -1,7 +1,8 @@
 import flet as ft
-import webbrowser
 import datetime
 import os
+import subprocess
+import platform
 
 
 class Message(ft.Container):
@@ -24,4 +25,8 @@ class Message(ft.Container):
             ])
 
     def _open_file(self, e, path) -> None:
-        webbrowser.open(path)
+        system = platform.system()
+        if system == "Windows":
+            os.startfile(path)
+        elif system == "Linux":
+            subprocess.Popen(["xdg-open", path])
