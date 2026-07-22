@@ -9,6 +9,7 @@ class Chat:
     def __init__(self, dir, page : ft.Page, contact):
         super().__init__()
         self.page = page
+        self.page.on_close = self._on_close
         self.dir = dir
         self.chat_handler = ChatHandler(dir, contact, self.add_message, page.run_task)
 
@@ -65,3 +66,6 @@ class Chat:
     def _unpin(self, e, path):
         self.application_panel.controls.remove(e.control.parent)
         self.applications.remove(path)
+
+    def _on_close(self):
+        self.chat_handler.stop()
