@@ -64,6 +64,7 @@ class ChatHandler:
 
     async def _fetch_messages(self):
         while True:
+            if self.running is False: return
             try:
                 async with self.locker:
                     messages = await asyncio.to_thread(fetch_incoming_messages, self.dir, self.incoming_thread_email, self.contact)
