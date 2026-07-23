@@ -1,10 +1,6 @@
-from typing import Callable
 import asyncio
-import time
 
 from network import create_message
-from utils import Dir
-from core import Contact
 from core import load_account
 from network import fetch_incoming_messages
 from network import create_server
